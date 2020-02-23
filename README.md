@@ -2,6 +2,7 @@
 
 ## Steps to run
 ```
+mkdir bin
 make all
 ```
 
