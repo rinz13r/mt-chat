@@ -18,8 +18,10 @@ bin/server <port>
 
 2. Connect a client
 ```
-bin/client <server_ip> <port> <name> <channel>
+bin/client <server_ip> <port> <name> <channel> <talk?>
 ```
+To enable voice, last arg must be "talk".
+
 For ui,
 ```
 bin/client_ui <server_ip> <port> <name> <channel>
