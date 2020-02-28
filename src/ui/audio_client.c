@@ -38,6 +38,7 @@ void sigint_handler (int signum) {
 }
 
 void * read_handler (void * arg) {
+    printf ("In read_handler\n");
     struct queue * q = client_p->response_q;
     static const pa_sample_spec ss = {
         .format = PA_SAMPLE_S16LE,
@@ -55,19 +56,23 @@ void * read_handler (void * arg) {
         ssize_t r = BUFSIZE;
         struct ServerResponse * resp = queue_pop (q);
         switch (resp->type) {
-            case MSG : {
-                struct Msg * msg = resp->data;
+            case VMSG : {
+                struct VoiceMsg * msg = resp->data;
                 if (pa_simple_write(s, msg->msg, (size_t) r, &error) < 0) {
                     fprintf(stderr, __FILE__": pa_simple_write() failed: %s\n", pa_strerror(error));
                     goto finish;
                 }
-                // ll delay = timediff (msg->ts, resp->ts);
-                // time_t trecv = resp->ts.s;
-                // struct tm ts = *localtime (&trecv);
-                // char tstr[80];
-                // strftime (tstr, sizeof (tstr), "%H:%M:%S", &ts);
-                // printf ("[%s] <%s> : %s\n", tstr, msg->who, msg->msg);
-                // tot += delay;
+                break;
+            }
+            case MSG : {
+                struct Msg * msg = resp->data;
+                ll delay = timediff (msg->ts, resp->ts);
+                time_t trecv = resp->ts.s;
+                struct tm ts = *localtime (&trecv);
+                char tstr[80];
+                strftime (tstr, sizeof (tstr), "%H:%M:%S", &ts);
+                printf ("[%s] <%s> : %s\n", tstr, msg->who, msg->msg);
+                tot += delay;
                 ++n;
                 break;
             }
@@ -77,8 +82,8 @@ void * read_handler (void * arg) {
                 break;
             }
         }
-        // free (resp->data);
-        // free (resp);
+        free (resp->data);
+        free (resp);
     }
     finish:
         if (pa_simple_drain(s, &error) < 0) {
@@ -89,22 +94,8 @@ void * read_handler (void * arg) {
             pa_simple_free(s);
 }
 
-static ssize_t loop_write(int fd, const void*data, size_t size) {
-    ssize_t ret = 0;
-    while (size > 0) {
-        ssize_t r;
-        if ((r = write(fd, data, size)) < 0)
-            return r;
-        if (r == 0)
-            break;
-        ret += r;
-        data = (const uint8_t*) data + r;
-        size -= (size_t) r;
-    }
-    return ret;
-}
-
-void * write_handler (void * arg) {
+void * voice_write_handler (void * arg) {
+    printf ("In voice_write_handler\n");
     static const pa_sample_spec ss = {
         .format = PA_SAMPLE_S16LE,
         .rate = 44100,
@@ -118,24 +109,17 @@ void * write_handler (void * arg) {
     }
     int cnt = 0;
     for (;;) {
-        struct Msg msg;
+        struct VoiceMsg msg;
         msg.grp = client_p->usr.room;
-        // msg.ts = gettime ();
         ssize_t r;
-        // if ((r = read(STDIN_FILENO, msg.msg, sizeof(msg.msg))) <= 0) {
-        //     if (r == 0) /* EOF */
-        //         break;
-        //
-        //     fprintf(stderr, __FILE__": read() failed: %s\n", strerror(errno));
-        //     goto finish;
-        // }
         if (pa_simple_read(s, msg.msg, sizeof(msg.msg), &error) < 0) {
             fprintf(stderr, __FILE__": pa_simple_read() failed: %s\n", pa_strerror(error));
             goto finish;
         }
-        int req = MSG;
-        int r1 = write (client_p->sock_fd, &req, sizeof (int));
-        int r2 = write (client_p->sock_fd, &msg, sizeof (struct Msg));
+        Client_send_vmsg (client_p, &msg);
+        // int req = VMSG;
+        // int r1 = write (client_p->sock_fd, &req, sizeof (int));
+        // int r2 = write (client_p->sock_fd, &msg, sizeof (struct VoiceMsg));
         cnt++;
     }
     finish:
@@ -144,6 +128,16 @@ void * write_handler (void * arg) {
     printf ("cnt=%d\n", cnt);
 }
 
+void * write_handler (void * arg) {
+    char msg[256];
+    while (1) {
+        read (0, msg, 256);
+        Client_send (client_p, msg, strlen (msg));
+        memset (msg, '\0', 256);
+    }
+}
+
+
 int DEBUG;
 
 int main (int argc, char ** argv) {
@@ -151,33 +145,21 @@ int main (int argc, char ** argv) {
         printf ("Usage: %s <serv_ip> <port> <name> <channel> <stat:opt>\n", argv[0]);
         exit (EXIT_FAILURE);
     }
-    // stat = 1;
-    int talk;
+    int talk = 0;
     if (argc == 6) talk = 1;
 
-    if (talk) {
-        int fd;
-
-        if ((fd = open("dump", O_RDONLY)) < 0) {
-            fprintf(stderr, __FILE__": open() failed: %s\n", strerror(errno));
-            goto finish;
-        }
-
-        if (dup2(fd, STDIN_FILENO) < 0) {
-            fprintf(stderr, __FILE__": dup2() failed: %s\n", strerror(errno));
-            goto finish;
-        }
-
-        close(fd);
-    }
     client_p = malloc (sizeof (struct Client));
     Client_init (client_p, argv[1], atoi (argv[2]), argv[3], atoi (argv[4]));
-    pthread_t tid;
-    if (talk) pthread_create (&tid, NULL, write_handler, NULL);
-    else pthread_create (&tid, NULL, read_handler, NULL);
+
+    pthread_t tid_vw, tid_w, tid_r;
+    if (talk) pthread_create (&tid_vw, NULL, voice_write_handler, NULL);
+    pthread_create (&tid_r, NULL, read_handler, NULL);
+    pthread_create (&tid_w, NULL, write_handler, NULL);
+
+
     signal (SIGINT, sigint_handler);
-    pthread_join (tid, NULL);
+    sleep (100);
+
     Client_exit (client_p);
-    finish:
-    printf ("finished\n");
+    return 0;
 }

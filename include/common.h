@@ -2,6 +2,8 @@
 
 #include <sys/types.h>
 #define BUFSIZE 1024
+#define MBUFSIZE 1024
+#define VBUFSIZE 1024
 
 enum Request {
     JOIN_ROOM,
@@ -13,6 +15,7 @@ enum ServerOps {
     MSG,
     BYE,
     NOTIF,
+    VMSG,
 };
 
 typedef long long ll;
@@ -35,5 +38,9 @@ struct Msg {
     int grp;
     struct t_format ts;
     char who[20];
-    uint8_t msg[BUFSIZE];
+    uint8_t msg[MBUFSIZE];
+};
+struct VoiceMsg {
+    int grp;
+    uint8_t msg[VBUFSIZE];
 };
