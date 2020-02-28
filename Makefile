@@ -4,15 +4,15 @@ client_core_src = $(wildcard src/core/client.c)
 ds_obj = $(ds_src:.c=.o)
 serv_obj = $(serv_src:.c=.o)
 client_core_obj = $(client_core_src:.c=.o)
-client_obj = src/ui/client.o
+client_obj = src/ui/audio_client.o
 spam_client_obj = test/spam_client.o
 test_client_obj = test/test_client.o
 test_obj = test/tests.o
 
 objs = $(ds_obj) $(serv_obj) $(client_core_obj) $(client_obj) $(spam_client_obj) $(test_client_obj) $(test_obj)
 
-LDFLAGS = -lpthread
-CC = cc -I include/
+LDFLAGS = -lpthread -lpulse -lpulse-simple
+CC = cc -I include/ -g
 
 all: server client test client_ui
 

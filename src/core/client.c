@@ -1,6 +1,7 @@
 #define DECL_QUEUE_SR
 
 #include "core/client.h"
+#include <pulse/simple.h>
 #include "common.h"
 #include "ntp.h"
 
@@ -51,18 +52,18 @@ void Client_init (struct Client * client, char * serv_ip, int port, char * name,
     pthread_create (&client->tidr, NULL, listen_handler, (client));
 }
 
-void Client_send (struct Client * client, char * buf, size_t len) {
+void Client_send (struct Client * client, unsigned char * buf, size_t len) {
     struct Msg msg;
     static int req = MSG;
     msg.grp = client->usr.room;
     msg.ts = gettime ();
 
     strcpy (msg.who, client->usr.name);
-    strcpy (msg.msg, buf);
-
+    memcpy (msg.msg, buf, BUFSIZE);
+    // &msg.msg = &buf;
     pthread_mutex_lock (&client->lock);
-    CALL (write (client->sock_fd, &req, sizeof (int)), "write");
-    CALL (write (client->sock_fd, &msg, sizeof (struct Msg)), "write");
+    write (client->sock_fd, &req, sizeof (int));
+    write (client->sock_fd, &msg, sizeof (struct Msg));
     pthread_mutex_unlock (&client->lock);
 }
 
@@ -77,7 +78,10 @@ void * listen_handler (void * arg) {
             case MSG : {
                 struct Msg * msg = malloc (sizeof (struct Msg));
                 int b = read (client->sock_fd, msg, sizeof (struct Msg));
-                if (b < 0) return NULL;
+                if (b < 0) {
+                    printf ("b<0\n");
+                    return NULL;
+                }
                 struct ServerResponse * resp = malloc (sizeof (struct ServerResponse));
                 resp->type = req;
                 resp->data = msg;

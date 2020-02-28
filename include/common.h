@@ -1,5 +1,8 @@
 #pragma once
 
+#include <sys/types.h>
+#define BUFSIZE 1024
+
 enum Request {
     JOIN_ROOM,
     LEAVE_ROOM,
@@ -32,5 +35,5 @@ struct Msg {
     int grp;
     struct t_format ts;
     char who[20];
-    char msg[256];
+    uint8_t msg[BUFSIZE];
 };

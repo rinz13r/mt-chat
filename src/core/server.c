@@ -171,6 +171,7 @@ void * connection_handler (void * arg) {
                     goto end;
                 }
                 case MSG : {
+                    // LOG ("req=msg");
                     struct Msg * msg = malloc (sizeof (struct Msg));
                     CALL (READ (msg, sizeof (struct Msg)), "read");
                     struct ClientResponse * resp = malloc (sizeof (struct ClientResponse));
@@ -195,6 +196,7 @@ void * connection_handler (void * arg) {
 void * broadcast_handler (void * arg) {
     while (1) {
         struct ClientResponse * resp = queue_pop (msgq);
+        // LOG ("broadcating..");
         struct Msg * msg = resp->msg;
         int grp = msg->grp, connfd = resp->connfd;
 

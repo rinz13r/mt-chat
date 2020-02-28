@@ -24,6 +24,6 @@ struct Client {
 };
 
 void Client_init (struct Client * client, char * serv_ip, int port, char *, int);
-void Client_send (struct Client * client, char * , size_t);
-void Client_recv (struct Client * client, char * );
+void Client_send (struct Client * client, unsigned char * , size_t);
+void Client_recv (struct Client * client, unsigned char * );
 void Client_exit (struct Client * client);
