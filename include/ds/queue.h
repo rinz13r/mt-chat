@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 
-#define MAX_QUEUE_SIZE 100000
+#define MAX_QUEUE_SIZE 1000000
 
 struct queue {
     void * arr[MAX_QUEUE_SIZE];

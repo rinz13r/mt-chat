@@ -5,6 +5,11 @@
 mkdir bin
 make all
 ```
+To run the ui, make sure you have go installed.
+Then run,
+```
+go get github.com/marcusolsson/tui-go
+```
 
 1. Start the server
 ```
@@ -13,7 +18,13 @@ bin/server <port>
 
 2. Connect a client
 ```
-bin/client <server_ip> <port> <name> <channel>
+bin/client <server_ip> <port> <name> <channel> <talk?>
+```
+To enable voice, last arg must be "talk".
+
+For ui,
+```
+bin/client_ui <server_ip> <port> <name> <channel>
 ```
 channel must be an integer b/w 1-100
 
